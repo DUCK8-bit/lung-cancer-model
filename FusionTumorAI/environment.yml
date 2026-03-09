@@ -1,0 +1,28 @@
+name: FusionTumorAI
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=11.8
+  - simpleitk
+  - pydicom
+  - matplotlib
+  - scikit-learn
+  - tqdm
+  - pandas
+  - openpyxl
+  - imageio
+  - pyvista
+  - ipykernel
+  - numpy<2.0
+  - pip
+  - pip:
+    - monai
+    - pyradiomics
+    - reportlab

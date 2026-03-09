@@ -1,0 +1,26 @@
+# Virtual environments
+venv/
+env/
+.env/
+
+# Datasets and models
+data/
+models/
+*.pth
+*.pt
+*.nii.gz
+*.h5
+*.hdf5
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+logs/
+*.log
+
+# IDEs
+.vscode/
+.idea/

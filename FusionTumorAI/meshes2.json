@@ -1,0 +1,29 @@
+[
+  {
+    "name": "mesh0",
+    "primitives": [
+      {
+        "attributes": {
+          "POSITION": 0
+        },
+        "indices": 1,
+        "material": 0,
+        "mode": 4
+      }
+    ]
+  },
+  {
+    "name": "mesh1",
+    "primitives": [
+      {
+        "attributes": {
+          "COLOR_0": 3,
+          "POSITION": 2
+        },
+        "indices": 4,
+        "material": 1,
+        "mode": 4
+      }
+    ]
+  }
+]

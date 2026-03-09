@@ -1,0 +1,13 @@
+torch
+monai
+simpleitk
+pydicom
+nibabel
+pyradiomics
+pandas
+numpy
+tqdm
+scipy
+scikit-learn
+matplotlib
+reportlab

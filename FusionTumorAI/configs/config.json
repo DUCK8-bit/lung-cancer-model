@@ -1,0 +1,28 @@
+{
+    "data_root": "C:/Users/ks181/Downloads/archive (1)",
+    "processed_dir": "data/processed",
+    "patches_dir": "data/patches",
+    "logs_dir": "logs",
+    "models_dir": "models",
+    "reports_dir": "reports",
+    "preprocessing": {
+        "target_spacing": [
+            2.0,
+            2.0,
+            2.0
+        ],
+        "clip_lower": -1000,
+        "clip_upper": 400
+    },
+    "registration": {
+        "rigid": true
+    },
+    "patch_generation": {
+        "patch_size": [
+            64,
+            64,
+            64
+        ],
+        "samples_per_patient": 20
+    }
+}

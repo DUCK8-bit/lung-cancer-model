@@ -1,0 +1,14 @@
+SimpleITK
+pydicom
+numpy
+monai
+torch
+pyradiomics
+scikit-image
+pandas
+matplotlib
+fastapi
+uvicorn
+python-multipart
+streamlit
+stpyvista
