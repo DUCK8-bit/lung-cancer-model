@@ -1,0 +1,213 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: fusion-tumor-ai-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.24, pipelines.kubeflow.org/pipeline_compilation_time: '2026-03-27T22:40:17.461662',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "End-to-End Lung Cancer
+      Detection and Analysis Pipeline", "name": "fusion-tumor-ai"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.24}
+spec:
+  entrypoint: fusion-tumor-ai
+  templates:
+  - name: classifier
+    container:
+      command: [python, agents/classifier.py]
+      image: docker.io/duck8bit/fusiontumorai:latest
+      resources:
+        limits: {cpu: '2', memory: 4Gi}
+        requests: {cpu: 100m, memory: 500Mi}
+      volumeMounts:
+      - {mountPath: /app/data, name: fusion-data-volume}
+    inputs:
+      parameters:
+      - {name: fusion-data-volume-name}
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.24
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+    volumes:
+    - name: fusion-data-volume
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.fusion-data-volume-name}}'}
+  - name: fusion-data-volume
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: '{{workflow.name}}-fusion-pvc'
+        spec:
+          accessModes:
+          - ReadWriteMany
+          resources:
+            requests:
+              storage: 20Gi
+    outputs:
+      parameters:
+      - name: fusion-data-volume-manifest
+        valueFrom: {jsonPath: '{}'}
+      - name: fusion-data-volume-name
+        valueFrom: {jsonPath: '{.metadata.name}'}
+      - name: fusion-data-volume-size
+        valueFrom: {jsonPath: '{.status.capacity.storage}'}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.24
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: fusion-tumor-ai
+    dag:
+      tasks:
+      - name: classifier
+        template: classifier
+        dependencies: [fusion-data-volume, radiomics-extraction]
+        arguments:
+          parameters:
+          - {name: fusion-data-volume-name, value: '{{tasks.fusion-data-volume.outputs.parameters.fusion-data-volume-name}}'}
+      - {name: fusion-data-volume, template: fusion-data-volume}
+      - name: preprocessing
+        template: preprocessing
+        dependencies: [fusion-data-volume]
+        arguments:
+          parameters:
+          - {name: fusion-data-volume-name, value: '{{tasks.fusion-data-volume.outputs.parameters.fusion-data-volume-name}}'}
+      - name: radiomics-extraction
+        template: radiomics-extraction
+        dependencies: [fusion-data-volume, segmentation]
+        arguments:
+          parameters:
+          - {name: fusion-data-volume-name, value: '{{tasks.fusion-data-volume.outputs.parameters.fusion-data-volume-name}}'}
+      - name: report-generation
+        template: report-generation
+        dependencies: [fusion-data-volume, visualization]
+        arguments:
+          parameters:
+          - {name: fusion-data-volume-name, value: '{{tasks.fusion-data-volume.outputs.parameters.fusion-data-volume-name}}'}
+      - name: segmentation
+        template: segmentation
+        dependencies: [fusion-data-volume, preprocessing]
+        arguments:
+          parameters:
+          - {name: fusion-data-volume-name, value: '{{tasks.fusion-data-volume.outputs.parameters.fusion-data-volume-name}}'}
+      - name: visualization
+        template: visualization
+        dependencies: [classifier, fusion-data-volume]
+        arguments:
+          parameters:
+          - {name: fusion-data-volume-name, value: '{{tasks.fusion-data-volume.outputs.parameters.fusion-data-volume-name}}'}
+  - name: preprocessing
+    container:
+      command: [python, agents/preprocessing.py]
+      image: docker.io/duck8bit/fusiontumorai:latest
+      resources:
+        limits: {cpu: '2', memory: 4Gi}
+        requests: {cpu: 100m, memory: 500Mi}
+      volumeMounts:
+      - {mountPath: /app/data, name: fusion-data-volume}
+    inputs:
+      parameters:
+      - {name: fusion-data-volume-name}
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.24
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+    volumes:
+    - name: fusion-data-volume
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.fusion-data-volume-name}}'}
+  - name: radiomics-extraction
+    container:
+      command: [python, agents/radiomics.py]
+      image: docker.io/duck8bit/fusiontumorai:latest
+      resources:
+        limits: {cpu: '2', memory: 4Gi}
+        requests: {cpu: 100m, memory: 500Mi}
+      volumeMounts:
+      - {mountPath: /app/data, name: fusion-data-volume}
+    inputs:
+      parameters:
+      - {name: fusion-data-volume-name}
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.24
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+    volumes:
+    - name: fusion-data-volume
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.fusion-data-volume-name}}'}
+  - name: report-generation
+    container:
+      command: [python, agents/report_generator.py]
+      image: docker.io/duck8bit/fusiontumorai:latest
+      resources:
+        limits: {cpu: '2', memory: 4Gi}
+        requests: {cpu: 100m, memory: 500Mi}
+      volumeMounts:
+      - {mountPath: /app/data, name: fusion-data-volume}
+    inputs:
+      parameters:
+      - {name: fusion-data-volume-name}
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.24
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+    volumes:
+    - name: fusion-data-volume
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.fusion-data-volume-name}}'}
+  - name: segmentation
+    container:
+      command: [python, agents/inference.py]
+      image: docker.io/duck8bit/fusiontumorai:latest
+      resources:
+        limits: {cpu: '2', memory: 4Gi}
+        requests: {cpu: 100m, memory: 500Mi}
+      volumeMounts:
+      - {mountPath: /app/data, name: fusion-data-volume}
+    inputs:
+      parameters:
+      - {name: fusion-data-volume-name}
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.24
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+    volumes:
+    - name: fusion-data-volume
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.fusion-data-volume-name}}'}
+  - name: visualization
+    container:
+      command: [python, agents/visualization.py]
+      image: docker.io/duck8bit/fusiontumorai:latest
+      resources:
+        limits: {cpu: '2', memory: 4Gi}
+        requests: {cpu: 100m, memory: 500Mi}
+      volumeMounts:
+      - {mountPath: /app/data, name: fusion-data-volume}
+    inputs:
+      parameters:
+      - {name: fusion-data-volume-name}
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.24
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+    volumes:
+    - name: fusion-data-volume
+      persistentVolumeClaim: {claimName: '{{inputs.parameters.fusion-data-volume-name}}'}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner

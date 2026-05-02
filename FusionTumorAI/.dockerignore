@@ -1,0 +1,24 @@
+# Ignore massive data folders
+data/
+logs/
+models/
+reports/
+
+# Ignore Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore environments
+venv/
+.env
+env/
+
+# Ignore IDE specific files
+.vscode/
+.idea/

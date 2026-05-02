@@ -1,0 +1,221 @@
+# PIPELINE DEFINITION
+# Name: fusion-tumor-ai
+# Description: End-to-End Lung Cancer Detection and Analysis Pipeline
+components:
+  comp-classifier-step:
+    executorLabel: exec-classifier-step
+  comp-preprocess-step:
+    executorLabel: exec-preprocess-step
+  comp-radiomics-step:
+    executorLabel: exec-radiomics-step
+  comp-segmentation-step:
+    executorLabel: exec-segmentation-step
+  comp-visualization-report-step:
+    executorLabel: exec-visualization-report-step
+deploymentSpec:
+  executors:
+    exec-classifier-step:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - classifier_step
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef classifier_step():\n    import subprocess\n    print(\"Running\
+          \ Classifier...\")\n    subprocess.run([\"python\", \"agents/classifier.py\"\
+          ], check=True)\n\n"
+        image: docker.io/yourusername/fusiontumorai:latest
+    exec-preprocess-step:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - preprocess_step
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef preprocess_step():\n    import subprocess\n    print(\"Running\
+          \ Preprocessing...\")\n    # Your current main.py doesn't have CLI args\
+          \ for individual steps cleanly exposed,\n    # so we run the agent scripts\
+          \ directly or via custom wrappers if needed.\n    # Assuming preprocessing\
+          \ runs automatically or via `python agents/preprocessing.py`\n    subprocess.run([\"\
+          python\", \"agents/preprocessing.py\"], check=True)\n\n"
+        image: docker.io/yourusername/fusiontumorai:latest
+    exec-radiomics-step:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - radiomics_step
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef radiomics_step():\n    import subprocess\n    print(\"Running\
+          \ Radiomics Extraction...\")\n    subprocess.run([\"python\", \"agents/radiomics.py\"\
+          ], check=True)\n\n"
+        image: docker.io/yourusername/fusiontumorai:latest
+    exec-segmentation-step:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - segmentation_step
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef segmentation_step():\n    import subprocess\n    print(\"Running\
+          \ Segmentation...\")\n    subprocess.run([\"python\", \"agents/inference.py\"\
+          ], check=True)\n\n"
+        image: docker.io/yourusername/fusiontumorai:latest
+    exec-visualization-report-step:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - visualization_report_step
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef visualization_report_step():\n    import subprocess\n    print(\"\
+          Running Visualization and Reporting...\")\n    subprocess.run([\"python\"\
+          , \"agents/visualization.py\"], check=True)\n    subprocess.run([\"python\"\
+          , \"agents/report_generator.py\"], check=True)\n\n"
+        image: docker.io/yourusername/fusiontumorai:latest
+pipelineInfo:
+  description: End-to-End Lung Cancer Detection and Analysis Pipeline
+  name: fusion-tumor-ai
+root:
+  dag:
+    tasks:
+      classifier-step:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-classifier-step
+        dependentTasks:
+        - radiomics-step
+        taskInfo:
+          name: classifier-step
+      preprocess-step:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-preprocess-step
+        taskInfo:
+          name: preprocess-step
+      radiomics-step:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-radiomics-step
+        dependentTasks:
+        - segmentation-step
+        taskInfo:
+          name: radiomics-step
+      segmentation-step:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-segmentation-step
+        dependentTasks:
+        - preprocess-step
+        taskInfo:
+          name: segmentation-step
+      visualization-report-step:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-visualization-report-step
+        dependentTasks:
+        - classifier-step
+        taskInfo:
+          name: visualization-report-step
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.16.0

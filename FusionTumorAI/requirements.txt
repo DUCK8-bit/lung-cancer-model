@@ -3,7 +3,6 @@ monai
 simpleitk
 pydicom
 nibabel
-pyradiomics
 pandas
 numpy
 tqdm

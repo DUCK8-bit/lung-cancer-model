@@ -5,6 +5,7 @@ import logging
 import pandas as pd
 import SimpleITK as sitk
 import numpy as np
+from scipy.stats import entropy as scipy_entropy
 from tqdm import tqdm
 try:
     from radiomics import featureextractor
@@ -98,11 +99,13 @@ class RadiomicsAgent:
                 mesh_area = tumor_mesh.area * (spacing[0] * spacing[1]) # Approx area scaling
                 
                 # Sphericity = (pi^(1/3) * (6*V)^(2/3)) / A
-                # We use voxel count volume for stability if mesh volume is tiny
+                # Use voxel count volume for stability if mesh volume is tiny
+                # Fix: use spacing[0]*spacing[1] for correct pixel area (not mean**2)
                 if mesh_area > 0 and volume_cm3 > 0:
                     v_mm3 = volume_cm3 * 1000.0
-                    a_mm2 = tumor_mesh.area * np.mean(spacing[:2])**2
+                    a_mm2 = tumor_mesh.area * (spacing[0] * spacing[1])
                     sphericity = (np.pi**(1.0/3.0) * (6.0 * v_mm3)**(2.0/3.0)) / a_mm2
+                    sphericity = float(np.clip(sphericity, 0.0, 1.0))  # bounded [0,1]
                 else:
                     sphericity = 0.0
                 
@@ -117,11 +120,22 @@ class RadiomicsAgent:
             tumor_hu = ct_arr[mask_arr > 0]
             mean_hu = np.mean(tumor_hu) if len(tumor_hu) > 0 else -1000.0
             
-            # SUV Max
+            # SUV Max (non-negative; PET voxel values represent radiotracer uptake)
             suv_max = 0.0
             if pet_arr is not None:
                 tumor_suv = pet_arr[mask_arr > 0]
-                suv_max = np.max(tumor_suv) if len(tumor_suv) > 0 else 0.0
+                suv_max = float(np.max(tumor_suv)) if len(tumor_suv) > 0 else 0.0
+                suv_max = max(0.0, suv_max)  # SUV is always non-negative
+            else:
+                logging.warning(f"No PET file for {patient_id} — SUV Max set to 0.0")
+
+            # Entropy: Shannon entropy from CT intensity histogram within tumor mask
+            # Higher entropy = more texture heterogeneity = poorer prognosis indicator
+            entropy_val = 0.0
+            if len(tumor_hu) > 0:
+                hist, _ = np.histogram(tumor_hu, bins=64, range=(-1000, 1000), density=True)
+                hist_pos = hist[hist > 0]  # avoid log(0)
+                entropy_val = float(scipy_entropy(hist_pos, base=2))
 
             # Inject calculated values
             features["Tumor_Volume_cm3"] = float(volume_cm3)
@@ -129,7 +143,7 @@ class RadiomicsAgent:
             features["CT_original_shape_Maximum3DDiameter"] = float(recist)
             features["CT_original_firstorder_Mean"] = float(mean_hu)
             features["PET_original_firstorder_Maximum"] = float(suv_max)
-            features["CT_original_firstorder_Entropy"] = 4.5 # Placeholder if not running GLCM
+            features["CT_original_firstorder_Entropy"] = entropy_val
             
             # Extract PyRadiomics if available just to supplement
             if self.extractor:

@@ -66,6 +66,25 @@ class ReportGenerationAgent:
                 diagnosis = "Potential Infection (TB/Pneumonia)"
             else:
                  diagnosis = "Suspicious (Uncertain Etiology)"
+
+        # Threshold flags for the table
+        suv_flag = " (Hypermetabolic)" if suv_max > 2.5 else ""
+        
+        sph_val = metrics.get('CT_original_shape_Sphericity', 'N/A')
+        sph_flag = ""
+        if isinstance(sph_val, (int, float)):
+            sph_str = f"{sph_val:.2f}"
+            sph_flag = " (Irregular)" if sph_val < 0.75 else " (Regular)"
+        else:
+            sph_str = "N/A"
+            
+        ent_val = metrics.get('CT_original_firstorder_Entropy', 'N/A')
+        ent_flag = ""
+        if isinstance(ent_val, (int, float)):
+            ent_str = f"{ent_val:.2f}"
+            ent_flag = " (Heterogeneous)" if ent_val > 4.5 else " (Homogeneous)"
+        else:
+            ent_str = "N/A"
         
         # RECIST
         recist_dia = metrics.get('CT_original_shape_Maximum3DDiameter', 'N/A')
@@ -91,10 +110,10 @@ class ReportGenerationAgent:
             ["Diagnosis Prediction", diagnosis],
             ["Tumor Volume (cm³)", f"{metrics.get('Tumor_Volume_cm3', 'N/A'):.2f}" if isinstance(metrics.get('Tumor_Volume_cm3'), (int, float)) else "N/A"],
             ["RECIST Diameter (Max 3D)", recist_str],
-            ["SUV Max", f"{suv_max:.2f}"],
+            ["SUV Max", f"{suv_max:.2f}{suv_flag}"],
             ["Mean HU", f"{mean_hu:.2f}"],
-            ["Sphericity", f"{metrics.get('CT_original_shape_Sphericity', 'N/A'):.2f}" if isinstance(metrics.get('CT_original_shape_Sphericity'), (int, float)) else "N/A"],
-            ["Entropy", f"{metrics.get('CT_original_firstorder_Entropy', 'N/A'):.2f}" if isinstance(metrics.get('CT_original_firstorder_Entropy'), (int, float)) else "N/A"]
+            ["Sphericity", f"{sph_str}{sph_flag}"],
+            ["Entropy", f"{ent_str}{ent_flag}"]
         ]
         
         t = Table(data)
@@ -109,6 +128,36 @@ class ReportGenerationAgent:
         ]))
         story.append(t)
         story.append(Spacer(1, 24))
+        
+        # Clinical Interpretation Section
+        story.append(Paragraph("Clinical Biomarker Interpretation", styles['Heading3']))
+        
+        interp_text = []
+        # SUV Interpretation
+        if suv_max > 2.5:
+            interp_text.append(f"<b>Metabolic (SUV Max):</b> A value of {suv_max:.2f} exceeds the 2.5 threshold, strongly indicating a hypermetabolic state commonly associated with malignancy or active infection.")
+        else:
+            interp_text.append(f"<b>Metabolic (SUV Max):</b> A value of {suv_max:.2f} is below the 2.5 threshold, indicating lower metabolic activity.")
+            
+        # Sphericity Interpretation
+        if isinstance(sph_val, (int, float)):
+            if sph_val < 0.75:
+                interp_text.append(f"<b>Shape (Sphericity):</b> A value of {sph_val:.2f} indicates irregular tumor borders, which is a key predictor of invasiveness and aggressive cell growth.")
+            else:
+                interp_text.append(f"<b>Shape (Sphericity):</b> A value of {sph_val:.2f} indicates relatively regular/rounded borders.")
+                
+        # Entropy Interpretation
+        if isinstance(ent_val, (int, float)):
+            if ent_val > 4.5:
+                interp_text.append(f"<b>Texture (Entropy):</b> A value of {ent_val:.2f} indicates high internal heterogeneity ('messy' texture), which literature correlates with poor prognosis.")
+            else:
+                interp_text.append(f"<b>Texture (Entropy):</b> A value of {ent_val:.2f} indicates relatively homogeneous internal texture.")
+
+        for text in interp_text:
+            story.append(Paragraph(text, styles['Normal']))
+            story.append(Spacer(1, 6))
+            
+        story.append(Spacer(1, 18))
         
         # 3D Visualization
         if os.path.exists(img_path):
